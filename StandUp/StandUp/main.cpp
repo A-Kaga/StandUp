@@ -5,6 +5,8 @@
 #include <ctime>
 #include <Windows.h>
 
+#include "Python.h"
+
 //#include "FaceRecognition.cpp"
 
 using namespace cv;
@@ -13,14 +15,21 @@ using namespace std;
 bool initialization(VideoCapture&, CascadeClassifier&);
 bool get_img(VideoCapture, Mat&);
 bool faceRecognition(Mat, vector<Rect>&, CascadeClassifier);
-void Sit_or_Not(vector<Rect>);
+void sit_or_not(vector<Rect>);
+void notification();
 
 int detected = 0;
 int absent = 0;
+int sit_count = 0;
+bool sit_flag = false;
+bool sent_flag = false;
+bool test_flag = true;
 
 int main()
 {
-	Mat frame, frame_gray;
+	notification();
+	return 0;
+	/*Mat frame, frame_gray;
 	VideoCapture cam(0);
 	CascadeClassifier face;
 	vector<Rect> faceRect;
@@ -36,20 +45,18 @@ int main()
 		if (!faceRecognition(frame, faceRect, face))
 			break;
 
-		Sit_or_Not(faceRect);
-		//for (size_t i = 0; i < faceRect.size(); i++)
-		//	rectangle(frame, faceRect[i], Scalar(0, 0, 255), 3);
+		sit_or_not(faceRect);
 
 		imshow("BigBrotherVideo", frame);
 
 		if (waitKey(30) == 27)
 			break;
 
-		Sleep(10000);
+		Sleep(2000);
 	}
 
 	waitKey(0);
-	return 0;
+	return 0;*/
 }
 
 
@@ -94,21 +101,56 @@ bool faceRecognition(Mat img, vector<Rect>& res, CascadeClassifier face)
 }
 
 
-void Sit_or_Not(vector<Rect> faceRect)
+void sit_or_not(vector<Rect> faceRect)
 {
 	if (faceRect.size() == 0)
 	{
 		absent++;
-		cout << "Buzai" << endl;
+		//cout << "Buzai" << endl;
 	}
 	else
 	{
 		absent = 0;
 		detected++;
-		cout << "Zai" << endl;
+		//cout << "Zai" << endl;
 	}
 
-	cout << "Current data:"
+	if (!sit_flag && detected >= 5)
+		sit_flag = true;
+	if (absent >= 2)
+	{
+		sit_flag = false;
+		detected = 0;
+	}
+
+	if (sit_flag)
+	{
+		if ((sent_flag && sit_count % 3 == 0) || !sent_flag)
+		{
+			notification();
+			sent_flag = true;
+		}
+		sit_count++;
+	}
+	cout << "Current data:" << endl
 		 << "Detected: " << detected << endl
-		 << "Absent: " << absent << endl;
+		 << "Absent: " << absent << endl << endl;
+}
+
+
+void notification()
+{
+	Py_Initialize();
+	/*
+	string path = "~/python";
+	string chdir_cmd = string("sys.path.append(\"") + path + "\")";
+	const char* cstr_cmd = chdir_cmd.c_str();
+	PyRun_SimpleString("import sys");
+	PyRun_SimpleString(cstr_cmd);
+	*/
+
+	PyObject * pModule = PyImport_ImportModule("notification");
+	PyObject * pFunc = PyObject_GetAttrString(pModule, "notification");
+	PyEval_CallObject(pFunc, NULL);
+	Py_Finalize();
 }
